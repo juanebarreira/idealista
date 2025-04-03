@@ -27,7 +27,7 @@ public class IdealistaMonitor {
             LocalDateTime now = LocalDateTime.now();
 
             // 🕙 Enviar keep-alive diario a las 22:00
-            if (now.getHour() == 22 && (lastKeepAliveDate == null || !now.toLocalDate().equals(lastKeepAliveDate))) {
+            if ((now.getHour() == 9 && (lastKeepAliveDate == null || !now.toLocalDate().equals(lastKeepAliveDate))) {
                 sendTelegramMessage("✅ Idealista Monitor está corriendo (ping diario 🕙)");
                 lastKeepAliveDate = now.toLocalDate();
             }
