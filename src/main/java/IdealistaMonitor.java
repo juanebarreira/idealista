@@ -13,8 +13,8 @@ import java.util.Set;
 public class IdealistaMonitor {
 
     private static final String SEARCH_URL = "https://www.idealista.com/areas/venta-viviendas/con-precio-hasta_850000,precio-desde_500000,pisos,de-dos-dormitorios,de-tres-dormitorios,de-cuatro-cinco-habitaciones-o-mas,solo-bajos/?shape=%28%28%28_%7B%7BuFlmtV%7Dq%40%3FqFYqKiBuZmKuDs%40aIyDkOgGaIgGgEsEuIkPaD%7DHkCwIgLwa%40oFcVyBiGuDoO%7DJiZ_DgL%7BQed%40%7B%40sESmF%3Fw%5Cz%40_Wf%40%7DH%3Fkh%40nAwWpKhh%40oFiZiE_RwBaHg%40sJ%3Fax%40R_Rz%40%7BRz%40wIxGw%5C%7CEqOnFoO%7EO%7D%60%40lHqOxGoOlHqOp%5Cyj%40%60IaMxGwIrPkPdGsEtN%7DHxGmA%60f%40%3FzEXzLhBxLbCfLxD%7CJrEtD%7CCfEhBtDvDtIfL%60DlFxGzMdGpOzVtk%40lCzH%60IzRtIzRvIdQ%7ECrEdGdLfL%60R%7CJtNjO%7EV%7CJ%7EQ%60DzMvB%60MpAfLz%40zRf%40pEnAr%5D%60Dng%40z%40lK%3FvlASdLcBxWaDnTwBbHgLdQaIfG_PfQmClAoFbHyi%40va%40wZrXoFvDmTdQyXjPqKlFoMnF_P%7CC%29%29%29"; // ← reemplazar
-    private static final String TELEGRAM_TOKEN = "8190755988:AAGVcltvAwX03InWnZeaNoCf5iBlLz7a2fk";
-    private static final String TELEGRAM_CHAT_ID = "821745703";
+    private static final String TELEGRAM_TOKEN = System.getenv("TELEGRAM_TOKEN");
+    private static final String TELEGRAM_CHAT_ID = System.getenv("TELEGRAM_CHAT_ID");
 
     private static final Set<String> seenAds = AdPersistence.loadSeenAds();
     private static final OkHttpClient unsafeClient = getUnsafeHttpClient();
@@ -40,7 +40,7 @@ public class IdealistaMonitor {
 
     private static void checkForNewAds() {
         try {
-            Document doc = getDocumentWithOkHttpBypassingSSL(SEARCH_URL);
+            Document doc = getDocumentWithOkHttp(SEARCH_URL);
 
             Elements adElements = doc.select("a.item-link"); // Cambiar si el selector no coincide
             for (Element ad : adElements) {
@@ -79,6 +79,27 @@ public class IdealistaMonitor {
             System.err.println("❌ Error en conexión Telegram: " + e.getMessage());
         }
     }
+
+    private static Document getDocumentWithOkHttp(String url) throws IOException {
+        OkHttpClient client = new OkHttpClient();
+
+        Request request = new Request.Builder()
+                .url(url)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .header("Accept-Language", "es-ES,es;q=0.9,en;q=0.8")
+                .header("Connection", "keep-alive")
+                .header("Referer", "https://www.idealista.com/")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("HTTP error fetching URL. Status=" + response.code());
+            }
+            return Jsoup.parse(response.body().string());
+        }
+    }
+
     private static Document getDocumentWithOkHttpBypassingSSL(String url) throws IOException {
         try {
             // TrustManager que acepta cualquier certificado
